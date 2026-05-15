@@ -5,32 +5,42 @@ export async function GET(req) {
   const ticker = searchParams.get("ticker");
   const range = searchParams.get("range") || "1mo";
 
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=${range}&interval=1d`;
-
-  const res = await fetch(url);
-  const json = await res.json();
-
-  const result = json.chart.result?.[0];
-
-  if (!result) {
-    return NextResponse.json({ error: "Invalid ticker" }, { status: 400 });
+  if (!ticker) {
+    return NextResponse.json({ error: "Ticker is required" }, { status: 400 });
   }
 
-  const timestamps = result.timestamp || [];
-  const prices = result.indicators.quote[0].close || [];
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=${range}&interval=1d`;
 
-  const dates = timestamps.map((t) =>
-    new Date(t * 1000).toLocaleDateString("en-GB")
-  );
+  try {
+    const res = await fetch(url);
+    const json = await res.json();
 
-  return NextResponse.json({
-    symbol: ticker,
-    price: prices[prices.length - 1],
-    change: null,
-    summary: "Price data loaded",
-    chartData: {
-      dates,
-      prices,
-    },
-  });
+    const result = json.chart?.result?.[0];
+    if (!result) {
+      return NextResponse.json({ error: "Invalid ticker" }, { status: 400 });
+    }
+
+    const timestamps = result.timestamp || [];
+    const prices = result.indicators?.quote?.[0]?.close || [];
+
+    const dates = timestamps.map((t) =>
+      new Date(t * 1000).toLocaleDateString("en-GB")
+    );
+
+    return NextResponse.json({
+      symbol: ticker,
+      price: prices[prices.length - 1],
+      change: null,
+      summary: "Price data loaded",
+      chartData: {
+        dates,
+        prices,
+      },
+    });
+  } catch (err) {
+    return NextResponse.json(
+      { error: "Failed to fetch data" },
+      { status: 500 }
+    );
+  }
 }
