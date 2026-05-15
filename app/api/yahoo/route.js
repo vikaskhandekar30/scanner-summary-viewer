@@ -1,41 +1,36 @@
-export async function GET(request) {
-  const { searchParams } = new URL(request.url);
+import { NextResponse } from "next/server";
+
+export async function GET(req) {
+  const { searchParams } = new URL(req.url);
   const ticker = searchParams.get("ticker");
+  const range = searchParams.get("range") || "1mo";
 
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1mo&interval=1d`;
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=${range}&interval=1d`;
 
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
+  const res = await fetch(url);
+  const json = await res.json();
 
-    return new Response(JSON.stringify(data), {
-      status: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Content-Type": "application/json"
-      }
-    });
-  } catch (err) {
-    return new Response(JSON.stringify({ error: "Failed to fetch Yahoo data" }), {
-      status: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type"
-      }
-    });
+  const result = json.chart.result?.[0];
+
+  if (!result) {
+    return NextResponse.json({ error: "Invalid ticker" }, { status: 400 });
   }
-}
 
-export async function OPTIONS() {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type"
-    }
+  const timestamps = result.timestamp || [];
+  const prices = result.indicators.quote[0].close || [];
+
+  const dates = timestamps.map((t) =>
+    new Date(t * 1000).toLocaleDateString("en-GB")
+  );
+
+  return NextResponse.json({
+    symbol: ticker,
+    price: prices[prices.length - 1],
+    change: null,
+    summary: "Price data loaded",
+    chartData: {
+      dates,
+      prices,
+    },
   });
 }
