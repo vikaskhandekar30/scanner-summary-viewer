@@ -6,7 +6,16 @@ export async function GET(req) {
   const range = searchParams.get("range") || "1mo";
 
   if (!ticker) {
-    return NextResponse.json({ error: "Ticker is required" }, { status: 400 });
+    return new NextResponse(
+      JSON.stringify({ error: "Ticker is required" }),
+      {
+        status: 400,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+      }
+    );
   }
 
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=${range}&interval=1d`;
@@ -17,7 +26,16 @@ export async function GET(req) {
 
     const result = json.chart?.result?.[0];
     if (!result) {
-      return NextResponse.json({ error: "Invalid ticker" }, { status: 400 });
+      return new NextResponse(
+        JSON.stringify({ error: "Invalid ticker" }),
+        {
+          status: 400,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
     }
 
     const timestamps = result.timestamp || [];
@@ -27,20 +45,35 @@ export async function GET(req) {
       new Date(t * 1000).toLocaleDateString("en-GB")
     );
 
-    return NextResponse.json({
-      symbol: ticker,
-      price: prices[prices.length - 1],
-      change: null,
-      summary: "Price data loaded",
-      chartData: {
-        dates,
-        prices,
-      },
-    });
+    return new NextResponse(
+      JSON.stringify({
+        symbol: ticker,
+        price: prices[prices.length - 1],
+        change: null,
+        summary: "Price data loaded",
+        chartData: {
+          dates,
+          prices,
+        },
+      }),
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+      }
+    );
+
   } catch (err) {
-    return NextResponse.json(
-      { error: "Failed to fetch data" },
-      { status: 500 }
+    return new NextResponse(
+      JSON.stringify({ error: "Failed to fetch data" }),
+      {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+      }
     );
   }
 }
